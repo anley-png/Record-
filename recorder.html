@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arabic Letter Island · Recorder</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff8ec;--fg:#2d2a4a;--card:#fff;--acc:#ff7b57;--ok:#3aa76d;--mut:#8a86a3;--bd:#e7dfd0}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1b2e;--fg:#f4efe6;--card:#2a2740;--bd:#3d3a58;--mut:#a8a4c4}}
+*{box-sizing:border-box}
+body{margin:0;font:16px system-ui,sans-serif;background:var(--bg);color:var(--fg);padding:12px;max-width:760px;margin-inline:auto}
+h1{font-size:1.1rem;margin:4px 0}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+#pg{font-weight:600;color:var(--ok)}
+nav{display:flex;gap:6px;margin:10px 0}
+nav button{flex:1;padding:10px;border:2px solid var(--bd);border-radius:12px;background:var(--card);color:var(--fg);font-weight:600}
+nav button.on{border-color:var(--acc);background:var(--acc);color:#fff}
+#card{background:var(--card);border:2px solid var(--bd);border-radius:20px;padding:16px;text-align:center}
+#big{font-family:"Noto Naskh Arabic","Amiri","Scheherazade New","Traditional Arabic",serif;font-size:96px;line-height:1.4;min-height:130px}
+#hint{color:var(--mut);margin-bottom:8px}
+.meter{height:10px;background:var(--bd);border-radius:6px;overflow:hidden;margin:8px 0}
+.meter i{display:block;height:100%;width:0;background:var(--ok)}
+#tm{height:1.2em;color:var(--mut);font-size:.9rem}
+.row{display:flex;gap:8px;justify-content:center;margin-top:8px}
+button{font:inherit;cursor:pointer}
+.row button{padding:14px 16px;border-radius:14px;border:2px solid var(--bd);background:var(--card);color:var(--fg);font-weight:600;min-width:56px}
+.row .rec{background:var(--acc);border-color:var(--acc);color:#fff;flex:1;max-width:200px}
+.row .rec.live{background:#c0392b;border-color:#c0392b}
+#msg{min-height:1.4em;margin-top:8px;font-weight:600}
+#msg.bad{color:#c0392b}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px;margin:14px 0}
+#grid button{padding:6px 2px;border:2px solid var(--bd);border-radius:10px;background:var(--card);color:var(--fg);font-family:"Noto Naskh Arabic","Amiri",serif;font-size:20px}
+#grid button.done{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--card))}
+#grid button.cur{outline:3px solid var(--acc)}
+.act{display:flex;gap:8px;flex-wrap:wrap}
+.act button{padding:12px 14px;border-radius:12px;border:2px solid var(--bd);background:var(--card);color:var(--fg);font-weight:600}
+.act .go{background:var(--ok);border-color:var(--ok);color:#fff;flex:1}
+details{margin:12px 0;background:var(--card);border:2px solid var(--bd);border-radius:14px;padding:8px 12px}
+li{margin:4px 0}
+</style>
+</head>
+<body>
+<header><h1>Arabic Letter Island · Recorder</h1><div id="pg"></div></header>
+<nav id="tabs"></nav>
+<div id="card">
+  <div id="big" dir="rtl" lang="ar"></div>
+  <div id="hint"></div>
+  <div class="meter"><i id="lv"></i></div>
+  <div id="tm"></div>
+  <div class="row">
+    <button id="prev" aria-label="Previous">←</button>
+    <button id="rec" class="rec">● Record</button>
+    <button id="pl">▶ Play</button>
+    <button id="next" aria-label="Next">→</button>
+  </div>
+  <div id="msg"></div>
+</div>
+<details open>
+<summary>Tips for a clean recording</summary>
+<ul>
+<li>Quiet room, phone about 10–15 cm from the mouth, same distance every time.</li>
+<li>Letters (l0…l27) are the letter <b>with fatha</b>, for example “ba”, “ta” — not the letter name. Say it clearly and alone.</li>
+<li>Words: say the word calmly at teaching speed, without the -un ending unless it is shown.</li>
+<li>Vowels (196 clips): short a / u / i, sukoon (a short stop with no vowel), long aa / uu / ee. You can skip these now and record them later: progress is saved on this device.</li>
+<li>Silence is trimmed and the volume is levelled automatically. Re-record any clip to replace it.</li>
+<li>Keys: Space = record/stop, ← → = previous/next, P = play.</li>
+</ul>
+</details>
+<div id="grid"></div>
+<div class="act">
+  <button id="exp" class="go">⬇ Download audio pack (.zip)</button>
+  <button id="del">Delete this clip</button>
+</div>
+<p style="color:var(--mut);font-size:.85rem">Unzip into your repo so the files land in <code>audio/</code>. The zip also contains RELEASE_FORM.txt, a template for the speaker to sign (not legal advice: have it checked).</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<script>
+const D={"L": [["ا", "alif", "aa", 0], ["ب", "ba", "b", 1], ["ت", "ta", "t", 1], ["ث", "tha", "th", 1], ["ج", "jiim", "j", 1], ["ح", "Haa", "H", 1], ["خ", "khaa", "kh", 1], ["د", "daal", "d", 0], ["ذ", "dhaal", "dh", 0], ["ر", "raa", "r", 0], ["ز", "zayn", "z", 0], ["س", "siin", "s", 1], ["ش", "shiin", "sh", 1], ["ص", "Saad", "S", 1], ["ض", "Daad", "D", 1], ["ط", "Taa", "T", 1], ["ظ", "DHaa", "DH", 1], ["ع", "'ayn", "'", 1], ["غ", "ghayn", "gh", 1], ["ف", "fa", "f", 1], ["ق", "qaaf", "q", 1], ["ك", "kaaf", "k", 1], ["ل", "laam", "l", 1], ["م", "miim", "m", 1], ["ن", "nuun", "n", 1], ["ه", "ha", "h", 1], ["و", "waaw", "w", 0], ["ي", "ya", "y", 1]], "W": [["طالب", "student", "🎓", "taalibun"], ["بيت", "house", "🏠", "beitun"], ["كتاب", "book", "📖", "kitaabun"], ["باب", "door", "🚪", "baabun"], ["قمر", "moon", "🌙", "qamarun"], ["نبت", "plant", "🌱", "nabtun"], ["تبن", "hay", "🌾", "tibnun"], ["بحر", "sea", "🌊", "bahrun"], ["نهر", "river", "🏞️", "nahrun"], ["جمل", "camel", "🐪", "jamalun"], ["ولد", "boy", "👦", "waladun"], ["بنت", "girl", "👧", "bintun"], ["قلم", "pen", "✏️", "qalamun"], ["شمس", "sun", "☀️", "shamsun"], ["نجم", "star", "⭐", "najmun"], ["سمك", "fish", "🐟", "samakun"], ["ورد", "rose", "🌹", "wardun"], ["دب", "bear", "🐻", "dubbun"], ["كلب", "dog", "🐶", "kalbun"], ["ليل", "night", "🌃", "leilun"], ["نار", "fire", "🔥", "naarun"], ["شجر", "trees", "🌳", "shajarun"], ["ثلج", "snow", "❄️", "thaljun"], ["حوت", "whale", "🐋", "hootun"], ["فيل", "elephant", "🐘", "feelun"], ["تمر", "dates", "🌴", "tamrun"], ["عين", "eye", "👁️", "einun"], ["يد", "hand", "✋", "yadun"], ["سن", "tooth", "🦷", "sinnun"], ["جبل", "mountain", "⛰️", "jabalun"], ["ديك", "rooster", "🐓", "deekun"], ["ابن", "son", "👶", "ibnun"], ["جد", "grandfather", "👴", "jaddun"], ["فخذ", "thigh", "🦵", "fakhdhun"], ["ذيل", "tail", "🐕", "dhaylun"], ["رجل", "man", "👨", "rajulun"], ["زيت", "oil", "🫒", "zaytun"], ["خبز", "bread", "🍞", "khubzun"], ["نمر", "tiger", "🐅", "namirun"], ["دجاج", "chicken", "🐔", "dajaajun"], ["ضفدع", "frog", "🐸", "difdaun"], ["ظبي", "deer", "🦌", "zabyun"], ["غصن", "branch", "🌿", "ghusnun"], ["فم", "mouth", "👄", "famun"], ["لبن", "milk", "🥛", "labanun"], ["مطر", "rain", "🌧️", "matarun"], ["نحل", "bees", "🐝", "nahlun"], ["هرم", "pyramid", "🔺", "haramun"], ["وجه", "face", "🙂", "wajhun"], ["شاي", "tea", "🍵", "shaayun"], ["تفاح", "apples", "🍎", "tuffaahun"], ["ذباب", "flies", "🪰", "dhubaabun"], ["صوت", "voice", "🔊", "sawtun"], ["ضيف", "guest", "🧑", "dayfun"], ["غزال", "gazelle", "🦌", "ghazaalun"], ["قطار", "train", "🚆", "qitaarun"], ["كرسي", "chair", "🪑", "kursiyyun"], ["مفتاح", "key", "🔑", "miftaahun"], ["وقت", "time", "⏰", "waqtun"], ["صحن", "plate", "🍽️", "sahnun"], ["شباك", "window", "🪟", "shubbaakun"], ["ضباب", "fog", "🌫️", "dabaabun"], ["طبيب", "doctor", "🧑‍⚕️", "tabiibun"], ["عصفور", "sparrow", "🐦", "usfuurun"], ["ثعلب", "fox", "🦊", "thalabun"], ["دم", "blood", "🩸", "damun"], ["ورق", "paper", "📄", "waraqun"], ["طباخ", "cook", "🧑‍🍳", "tabbaakhun"], ["دماغ", "brain", "🧠", "dimaaghun"], ["رياض", "gardens", "🌷", "riyaadun"], ["ميراث", "inheritance", "📜", "miiraathun"], ["رباط", "bond", "🔗", "ribaatun"], ["ذراع", "arm", "💪", "dhiraaun"], ["دف", "drum", "🥁", "daffun"], ["جبال", "mountains", "🏔️", "jibaalun"], ["ديوان", "office", "🏢", "diiwaanun"], ["شاه", "king", "👑", "shaahun"], ["ناس", "people", "🧑‍🤝‍🧑", "naasun"], ["بنات", "girls", "👧", "banaatun"], ["ملاك", "angel", "👼", "malaakun"], ["حفاظ", "keeping", "🔒", "hifaazun"], ["حوض", "pond", "🏊", "hawdun"], ["قفص", "cage", "🐦", "qafasun"], ["صبح", "morning", "🌅", "subhun"], ["نخل", "palms", "🌴", "nakhlun"], ["وعد", "promise", "🤝", "wadun"], ["نظر", "sight", "👀", "nazarun"], ["حفظ", "memorizing", "🧠", "hifzun"], ["بيض", "eggs", "🥚", "baydun"], ["وضع", "placing", "📍", "wadun"], ["قصر", "palace", "🏰", "qasrun"], ["بطل", "hero", "🦸", "batalun"], ["قطط", "cats", "🐈", "qitatun"], ["عشب", "grass", "🌱", "ushbun"], ["نسر", "eagle", "🦅", "nasrun"], ["سكر", "sugar", "🍬", "sukkarun"], ["بحث", "research", "🔍", "bahthun"], ["طبخ", "cooking", "🍳", "tabkhun"], ["سمع", "hearing", "👂", "samun"], ["صبغ", "dye", "🎨", "sabghun"], ["كهف", "cave", "🕳️", "kahfun"], ["صيف", "summer", "🏖️", "sayfun"], ["خيط", "thread", "🧵", "khaytun"], ["شفق", "twilight", "🌇", "shafaqun"], ["قلب", "heart", "❤️", "qalbun"], ["حليب", "milk", "🥛", "haliibun"], ["مثل", "example", "💬", "mathalun"], ["عيش", "life", "🌿", "ayshun"], ["رش", "spray", "💦", "rashshun"], ["رصاص", "pencil lead", "✏️", "rasaasun"], ["غضب", "anger", "😠", "ghadabun"], ["بغل", "mule", "🐴", "baghlun"], ["بقر", "cow", "🐄", "baqarun"], ["عنب", "grapes", "🍇", "inabun"], ["نور", "light", "💡", "nuurun"], ["فول", "beans", "🫘", "fuulun"]], "V": [["َ", "a"], ["ُ", "u"], ["ِ", "i"], ["ْ", ""], ["َا", "aa"], ["ُو", "uu"], ["ِي", "ee"]]};
+const L=D.L,W=D.W,V=D.V,FATHA='\u064E',ALIF='\u0623';
+const clips=[];
+L.forEach((l,i)=>clips.push({id:'l'+i,g:'Letters',t:(i==0?ALIF:l[0])+FATHA,h:l[2]+'a  ·  '+l[1]}));
+W.forEach((w,k)=>clips.push({id:'w'+k,g:'Words',t:w[0],h:w[3]+'  ·  '+w[1]+' '+w[2]}));
+L.forEach((l,i)=>V.forEach((v,q)=>clips.push({id:'v'+i+'_'+q,g:'Vowels',t:l[0]+v[0],h:l[2]+v[1]+(q==3?'  (no vowel: short stop)':'')+'  ·  '+l[1]})));
+const TABS=['Letters','Words','Vowels'];
+const $=s=>document.querySelector(s);
+const store=new Map();
+let tab='Letters',cur=0,recording=false,recId=null,ms,mr,chunks,ctx,an,raf,t0,db;
+
+/* ---------- storage (IndexedDB keeps work between sessions) ---------- */
+function idb(){return new Promise(r=>{try{const q=indexedDB.open('arl-rec',1);q.onupgradeneeded=()=>q.result.createObjectStore('c');q.onsuccess=()=>{db=q.result;r()};q.onerror=()=>r()}catch(e){r()}})}
+function put(id,v){try{db&&db.transaction('c','readwrite').objectStore('c').put(v,id)}catch(e){}}
+function rm(id){try{db&&db.transaction('c','readwrite').objectStore('c').delete(id)}catch(e){}}
+function loadAll(){return new Promise(r=>{if(!db)return r();try{const c=db.transaction('c').objectStore('c').openCursor();c.onsuccess=e=>{const x=e.target.result;if(x){store.set(x.key,x.value);x.continue()}else r()};c.onerror=()=>r()}catch(e){r()}})}
+
+/* ---------- UI ---------- */
+function msg(t,bad){const m=$('#msg');m.textContent=t||'';m.className=bad?'bad':''}
+function inTab(){return clips.map((c,i)=>[c,i]).filter(([c])=>c.g==tab)}
+function ui(){
+  const c=clips[cur];
+  $('#big').textContent=c.t;$('#hint').textContent=c.h+'  ('+c.id+')';
+  const r=$('#rec');r.textContent=recording?'■ Stop':(store.has(c.id)?'● Re-record':'● Record');r.classList.toggle('live',recording);
+  $('#pg').textContent=store.size+' / '+clips.length+' recorded';
+  $('#tabs').innerHTML='';
+  TABS.forEach(n=>{const b=document.createElement('button');const tot=clips.filter(x=>x.g==n),dn=tot.filter(x=>store.has(x.id)).length;b.textContent=n+' '+dn+'/'+tot.length;b.className=n==tab?'on':'';b.onclick=()=>{if(recording)return;tab=n;cur=clips.findIndex(x=>x.g==n&&!store.has(x.id));if(cur<0)cur=clips.findIndex(x=>x.g==n);msg();ui()};$('#tabs').appendChild(b)});
+  const g=$('#grid');g.innerHTML='';
+  inTab().forEach(([x,i])=>{const b=document.createElement('button');b.textContent=x.g=='Letters'?x.t:(x.g=='Words'?x.t:x.t);b.className=(store.has(x.id)?'done ':'')+(i==cur?'cur':'');b.onclick=()=>{if(recording)return;cur=i;msg();ui()};g.appendChild(b)});
+}
+function move(d){if(recording)return;const l=inTab().map(([,i])=>i),p=l.indexOf(cur),n=l[Math.max(0,Math.min(l.length-1,p+d))];cur=n;msg();ui()}
+
+/* ---------- recording ---------- */
+const AC=window.AudioContext||window.webkitAudioContext;
+async function start(){
+  if(recording)return;
+  try{ms=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}})}
+  catch(e){msg('Microphone blocked. Allow it in the browser, and open this page over https or localhost.',1);return}
+  ctx=ctx||new AC();await ctx.resume();
+  const src=ctx.createMediaStreamSource(ms);an=ctx.createAnalyser();an.fftSize=1024;src.connect(an);
+  recId=clips[cur].id;chunks=[];mr=new MediaRecorder(ms);
+  mr.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  mr.onstop=finish;mr.start();recording=true;t0=Date.now();msg('Recording… say it now');meter();ui();
+}
+function stop(){if(!recording)return;recording=false;try{mr.stop()}catch(e){}ms.getTracks().forEach(t=>t.stop());cancelAnimationFrame(raf);$('#lv').style.width='0';ui()}
+function meter(){const d=new Float32Array(an.fftSize);(function f(){an.getFloatTimeDomainData(d);let m=0;for(const s of d)m=Math.max(m,Math.abs(s));$('#lv').style.width=Math.min(100,m*140)+'%';$('#tm').textContent=((Date.now()-t0)/1000).toFixed(1)+' s';raf=requestAnimationFrame(f)})()}
+function trim(x){
+  let p=0;for(let i=0;i<x.length;i++){const a=Math.abs(x[i]);if(a>p)p=a}
+  if(p<0.02)return null;
+  const th=p*.06;let s=0,e=x.length-1;while(s<e&&Math.abs(x[s])<th)s++;while(e>s&&Math.abs(x[e])<th)e--;
+  const sr=ctx.sampleRate;s=Math.max(0,s-Math.round(.08*sr));e=Math.min(x.length-1,e+Math.round(.2*sr));
+  const g=.89/p,o=new Float32Array(e-s+1);for(let i=0;i<o.length;i++)o[i]=x[s+i]*g;
+  const fi=Math.round(.005*sr),fo=Math.round(.03*sr);
+  for(let i=0;i<fi&&i<o.length;i++)o[i]*=i/fi;
+  for(let i=0;i<fo&&i<o.length;i++)o[o.length-1-i]*=i/fo;
+  return o;
+}
+async function finish(){
+  const id=recId;
+  try{
+    const buf=await new Blob(chunks,{type:mr.mimeType}).arrayBuffer();
+    const ab=await ctx.decodeAudioData(buf);
+    const r=trim(ab.getChannelData(0));
+    if(!r){msg('Too quiet or empty. Move closer to the mic and try again.',1);ui();return}
+    const pcm=new Int16Array(r.length);for(let i=0;i<r.length;i++)pcm[i]=Math.max(-1,Math.min(1,r[i]))*32767;
+    const v={sr:ab.sampleRate,pcm};store.set(id,v);put(id,v);
+    msg('Saved ('+(r.length/ab.sampleRate).toFixed(2)+' s). Press Play to check it.');play(id);
+  }catch(e){msg('Could not read that recording. Try again.',1)}
+  ui();
+}
+function play(id){
+  const v=store.get(id);if(!v)return;ctx=ctx||new AC();ctx.resume();
+  const f=new Float32Array(v.pcm.length);for(let i=0;i<f.length;i++)f[i]=v.pcm[i]/32767;
+  const b=ctx.createBuffer(1,f.length,v.sr);b.copyToChannel(f,0);
+  const s=ctx.createBufferSource();s.buffer=b;s.connect(ctx.destination);s.start();
+}
+
+/* ---------- export: mp3 (or wav if the encoder did not load) in a zip ---------- */
+const FORM=`VOICE RECORDING RELEASE (template, not legal advice: have it reviewed)
+
+Project: Arabic Letter Island (educational app)
+Speaker name: ______________________
+Date: ______________________
+
+I recorded the Arabic letters, words and vowel sounds delivered with this form.
+I confirm that I am the only speaker and that I am an adult (or my guardian signs below).
+I give the app owner a worldwide, perpetual, irrevocable, non-exclusive right to use, copy,
+edit and distribute these recordings inside the app and its marketing, including in paid
+and commercial versions, with no further payment: / with payment of: ____________
+I understand the recordings are not used to build a synthetic copy of my voice unless I agree in writing.
+
+Signature: ______________________
+`;
+function cat(a){let n=0;for(const x of a)n+=x.length;const o=new Uint8Array(n);let p=0;for(const x of a){o.set(x,p);p+=x.length}return o}
+function toMp3(v){const e=new lamejs.Mp3Encoder(1,v.sr,128),o=[];for(let i=0;i<v.pcm.length;i+=1152){const b=e.encodeBuffer(v.pcm.subarray(i,i+1152));if(b.length)o.push(new Uint8Array(b.buffer,b.byteOffset,b.length))}const f=e.flush();if(f.length)o.push(new Uint8Array(f.buffer,f.byteOffset,f.length));return cat(o)}
+function toWav(v){const n=v.pcm.length,h=new DataView(new ArrayBuffer(44));const w=(o,s)=>[...s].forEach((c,i)=>h.setUint8(o+i,c.charCodeAt(0)));
+  w(0,'RIFF');h.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');h.setUint32(16,16,true);h.setUint16(20,1,true);h.setUint16(22,1,true);h.setUint32(24,v.sr,true);h.setUint32(28,v.sr*2,true);h.setUint16(32,2,true);h.setUint16(34,16,true);w(36,'data');h.setUint32(40,n*2,true);
+  return cat([new Uint8Array(h.buffer),new Uint8Array(v.pcm.buffer,v.pcm.byteOffset,n*2)])}
+const CT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc(d){let c=-1;for(let i=0;i<d.length;i++)c=CT[(c^d[i])&255]^(c>>>8);return(c^-1)>>>0}
+function zip(fs){
+  const enc=new TextEncoder(),parts=[],cd=[];let off=0;
+  for(const f of fs){
+    const n=enc.encode(f.name),c=crc(f.data),h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(12,0x21,true);h.setUint32(14,c,true);h.setUint32(18,f.data.length,true);h.setUint32(22,f.data.length,true);h.setUint16(26,n.length,true);
+    parts.push(new Uint8Array(h.buffer),n,f.data);
+    const g=new DataView(new ArrayBuffer(46));
+    g.setUint32(0,0x02014b50,true);g.setUint16(4,20,true);g.setUint16(6,20,true);g.setUint16(8,0x0800,true);g.setUint16(14,0x21,true);g.setUint32(16,c,true);g.setUint32(20,f.data.length,true);g.setUint32(24,f.data.length,true);g.setUint16(28,n.length,true);g.setUint32(42,off,true);
+    cd.push(new Uint8Array(g.buffer),n);off+=30+n.length+f.data.length;
+  }
+  let cs=0;for(const p of cd)cs+=p.length;
+  const e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,fs.length,true);e.setUint16(10,fs.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...cd,new Uint8Array(e.buffer)],{type:'application/zip'});
+}
+async function exportZip(){
+  const have=clips.filter(c=>store.has(c.id));
+  if(!have.length){msg('Nothing recorded yet.',1);return}
+  const mp3=!!window.lamejs,files=[];
+  msg('Building the zip…');
+  for(const c of have){const v=store.get(c.id);files.push({name:'audio/'+c.id+(mp3?'.mp3':'.wav'),data:mp3?toMp3(v):toWav(v)});await new Promise(r=>setTimeout(r))}
+  files.push({name:'RELEASE_FORM.txt',data:new TextEncoder().encode(FORM)});
+  const a=document.createElement('a');a.href=URL.createObjectURL(zip(files));a.download='arabic-letter-island-audio.zip';document.body.appendChild(a);a.click();a.remove();
+  msg(mp3?'Done: '+have.length+' clips exported as .mp3.':'MP3 encoder did not load (offline?). Exported as .wav: reconnect and export again to get .mp3.',!mp3);
+}
+
+/* ---------- wiring ---------- */
+$('#rec').onclick=()=>recording?stop():start();
+$('#pl').onclick=()=>play(clips[cur].id);
+$('#prev').onclick=()=>move(-1);$('#next').onclick=()=>move(1);
+$('#exp').onclick=exportZip;
+$('#del').onclick=()=>{const id=clips[cur].id;if(store.has(id)&&confirm('Delete this recording?')){store.delete(id);rm(id);msg('Deleted.');ui()}};
+document.addEventListener('keydown',e=>{if(e.target.closest('button')&&e.code=='Space')return;
+  if(e.code=='Space'){e.preventDefault();recording?stop():start()}
+  else if(e.key=='ArrowLeft')move(-1);else if(e.key=='ArrowRight')move(1);
+  else if(e.key=='p'||e.key=='P')play(clips[cur].id)});
+idb().then(loadAll).then(()=>{cur=Math.max(0,clips.findIndex(c=>!store.has(c.id)));ui()});
+</script>
+</body>
+</html>
